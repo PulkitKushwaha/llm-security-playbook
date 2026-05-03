@@ -53,3 +53,20 @@ This playbook covers threats specific to **LLM-powered systems** — RAG pipelin
 | Model Denial of Service | Overloading models with resource-intensive or recursive prompts to degrade availability |
  
 ---
+
+## Status
+ 
+| Section | Status |
+|---|---|
+| Threat modeling overview | Done |
+| OWASP LLM Top 10 breakdown | In progress |
+| Prompt injection demos | Coming soon |
+| Jailbreak demos | Coming soon |
+| Data exfiltration demos | Coming soon |
+| Red-teaming scripts | Coming soon |
+| Mitigation patterns | Coming soon |
+ 
+---
+ 
+*Part of the [ai-engineering-portfolio](https://github.com/pulkitkushwaha/ai-engineering-portfolio) — built by [Pulkit Kushwaha](https://linkedin.com/in/pulkit-kushwaha)*
+ 
