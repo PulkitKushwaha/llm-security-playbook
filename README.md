@@ -44,10 +44,10 @@ This playbook covers threats specific to **LLM-powered systems** — RAG pipelin
  
 | Category | Description |
 |---|---|
-| Prompt Injection | Manipulating LLM behavior through crafted inputs — both direct (user input) and indirect (via documents, tool outputs) |
+| Prompt Injection | Manipulating LLM behavior through crafted inputs: both direct (user input) and indirect (via documents, tool outputs) |
 | Jailbreaking | Bypassing safety constraints and policy guardrails through adversarial prompts |
 | Data Exfiltration | Extracting sensitive data from context windows, system prompts, or RAG knowledge bases |
-| Insecure Output Handling | Trusting LLM output without validation — leading to XSS, code execution, or incorrect decisions |
+| Insecure Output Handling | Trusting LLM output without validation: leading to XSS, code execution, or incorrect decisions |
 | RAG Pipeline Attacks | Poisoning knowledge bases with malicious documents to manipulate retrieval and generation |
 | Excessive Agency | Agents taking unintended real-world actions due to overpermissioned tools or weak guardrails |
 | Model Denial of Service | Overloading models with resource-intensive or recursive prompts to degrade availability |
