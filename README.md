@@ -801,13 +801,264 @@ def perturb_output(response: str, perturbation_rate: float = 0.02) -> str:
  
 ---
 
- ## Status
+## Threat Modeling Template
+ 
+This is one of the general templates that I have been using in my projects. You can use this template when threat modeling any new LLM-powered system. Work through each section before writing a single line of code.
+ 
+---
+ 
+### System Overview
+ 
+```
+System name:
+System type:              # RAG pipeline / Agent / Copilot / Fine-tuned model / Other
+LLM provider:             # OpenAI / Azure OpenAI / Anthropic / Self-hosted / Other
+Deployment environment:   # Internal tool / Customer-facing / API / Embedded
+Data sensitivity:         # Public / Internal / Confidential / Restricted
+```
+ 
+---
+ 
+### Trust Boundaries
+ 
+Map every point where data crosses a trust boundary.
+ 
+```
+[ User Input ]
+      ↓
+[ Input Validation Layer ]     ← Trust boundary 1: user → system
+      ↓
+[ System Prompt + Context ]
+      ↓
+[ LLM ]
+      ↓
+[ Output Validation Layer ]    ← Trust boundary 2: LLM → downstream
+      ↓
+[ Tool / API / Database ]      ← Trust boundary 3: system → external
+      ↓
+[ User Output / Action ]
+```
+ 
+For each boundary, ask: *What happens if the data crossing this boundary is malicious?*
+ 
+---
+ 
+### Asset Inventory
+ 
+| Asset | Sensitivity | Where it lives | Who can access it |
+|---|---|---|---|
+| System prompt | High | LLM context | Engineers only |
+| Knowledge base documents | Varies | Vector store | Role-dependent |
+| User query history | Medium | Logs | Admins only |
+| API keys / credentials | Critical | Env vars / vault | Engineers only |
+| LLM outputs | Varies | Response / logs | User + admins |
+ 
+---
+ 
+### Threat Assessment
+ 
+| Threat | Applicable? | Likelihood | Impact | Priority |
+|---|---|---|---|---|
+| LLM01 Prompt Injection | Yes / No / Partial | Low / Med / High | Low / Med / High | P1 / P2 / P3 |
+| LLM02 Insecure Output Handling | | | | |
+| LLM03 Training Data Poisoning | | | | |
+| LLM04 Model Denial of Service | | | | |
+| LLM05 Supply Chain | | | | |
+| LLM06 Sensitive Info Disclosure | | | | |
+| LLM07 Insecure Plugin Design | | | | |
+| LLM08 Excessive Agency | | | | |
+| LLM09 Overreliance | | | | |
+| LLM10 Model Theft | | | | |
+ 
+---
+ 
+### Mitigation Plan
+ 
+For each P1 threat:
+ 
+```
+Threat:
+Attack scenario:
+Current control (if any):
+Mitigation action:
+Owner:
+Target date:
+Validation method:
+```
+ 
+---
+ 
+### Pre-deployment Checklist
+ 
+- [ ] System prompt does not contain secrets or credentials
+- [ ] Retrieved context is structurally separated from instructions
+- [ ] All LLM outputs are validated before downstream use
+- [ ] RBAC is enforced at the retrieval layer
+- [ ] Tool access follows least-privilege principle
+- [ ] Rate limiting is in place at the API layer
+- [ ] Token consumption is monitored per user/session
+- [ ] Irreversible agent actions require explicit confirmation
+- [ ] Logging and audit trail is in place for all LLM decisions
+- [ ] Red-teaming has been performed before go-live
+---
+ 
+## Worked Example: Threat Model for an Enterprise RAG Knowledge Assistant
+ 
+> The following applies the template above to a real-world scenario: an internal knowledge management platform handling confidential HR, legal, and financial documents — accessible to employees via a chat interface.
+ 
+---
+ 
+### System Overview
+ 
+```
+System name:              Enterprise Knowledge Assistant
+System type:              RAG pipeline
+LLM provider:             Azure OpenAI (GPT-4)
+Deployment environment:   Internal tool — employee-facing web app
+Data sensitivity:         Confidential / Restricted
+                          (HR policies, legal contracts, financial reports)
+```
+ 
+---
+ 
+### Trust Boundaries
+ 
+```
+[ Employee Query (browser) ]
+          ↓
+[ API Gateway + Auth (Azure Entra ID) ]   ← Boundary 1: user → system
+          ↓                                  Risk: impersonation, session hijack
+[ Input Validation + Rate Limiter ]
+          ↓
+[ Retriever (Azure AI Search) ]            ← Boundary 2: system → knowledge base
+          ↓                                  Risk: over-retrieval, RBAC bypass
+[ RBAC Filter (permission check) ]
+          ↓
+[ Context Assembly + System Prompt ]
+          ↓
+[ Azure OpenAI GPT-4 ]                     ← Boundary 3: system → LLM
+          ↓                                  Risk: prompt injection, data leakage
+[ Output Validator (PII redaction, schema check) ]
+          ↓
+[ Response → Employee ]                    ← Boundary 4: LLM → user
+                                             Risk: hallucinated content, overreliance
+```
+ 
+---
+ 
+### Asset Inventory
+ 
+| Asset | Sensitivity | Where it lives | Who can access it |
+|---|---|---|---|
+| HR policy documents | Confidential | Azure AI Search index | HR team only |
+| Legal contracts | Restricted | Azure AI Search index | Legal + C-suite only |
+| Financial reports | Restricted | Azure AI Search index | Finance + C-suite only |
+| General IT policies | Internal | Azure AI Search index | All employees |
+| System prompt | High | Azure OpenAI context | Engineers only |
+| Employee query logs | Medium | Azure Monitor / Log Analytics | Admins only |
+| Azure OpenAI API key | Critical | Azure Key Vault | Service principal only |
+| Employee session tokens | High | Azure Entra ID | Auth service only |
+ 
+---
+ 
+### Threat Assessment
+ 
+| Threat | Applicable? | Likelihood | Impact | Priority |
+|---|---|---|---|---|
+| LLM01 Prompt Injection | Yes — indirect via uploaded docs | Medium | High | **P1** |
+| LLM02 Insecure Output Handling | Partial — output rendered in browser | Low | Medium | P2 |
+| LLM03 Training Data Poisoning | No — using hosted Azure OpenAI | N/A | N/A | N/A |
+| LLM04 Model Denial of Service | Yes — no rate limiting in v1 | Medium | Medium | **P1** |
+| LLM05 Supply Chain | Partial — LangChain + embedding model | Low | High | P2 |
+| LLM06 Sensitive Info Disclosure | Yes — multi-sensitivity knowledge base | High | High | **P1** |
+| LLM07 Insecure Plugin Design | No — read-only, no action tools | N/A | N/A | N/A |
+| LLM08 Excessive Agency | No — no agentic actions | N/A | N/A | N/A |
+| LLM09 Overreliance | Yes — employees treating output as ground truth | High | Medium | **P1** |
+| LLM10 Model Theft | Low — internal tool, not public API | Low | Low | P3 |
+ 
+---
+ 
+### Mitigation Plan (P1 Threats)
+ 
+**LLM01 — Prompt Injection**
+```
+Attack scenario:   A malicious contractor uploads a PDF with injected instructions
+                   designed to exfiltrate other employees' retrieved documents.
+Current control:   None — all uploaded documents are trusted equally.
+Mitigation:        Structurally separate retrieved context from instructions
+                   using XML delimiters. Add output guard layer that flags
+                   responses containing system-level language.
+Owner:             AI Engineering team
+Target date:       Before production launch
+Validation:        Red-team test with 20 injected documents. 0 successful injections.
+```
+ 
+**LLM04 — Model Denial of Service**
+```
+Attack scenario:   An employee (or compromised account) hammers the system
+                   with max-context queries, inflating Azure OpenAI costs.
+Current control:   None.
+Mitigation:        Rate limit to 20 queries/minute per user. Cap retrieved
+                   chunks at 5. Monitor token usage per session — alert at 10K.
+Owner:             Platform Engineering
+Target date:       Sprint 2
+Validation:        Load test showing cost stays within budget under 100 concurrent users.
+```
+ 
+**LLM06 — Sensitive Information Disclosure**
+```
+Attack scenario:   An HR assistant asks the system a question whose embedding
+                   is semantically close to a C-suite financial report they
+                   are not authorized to view.
+Current control:   API-level auth only — no retrieval-layer RBAC.
+Mitigation:        Tag every document chunk with access_level metadata at
+                   ingestion. Filter retrieved chunks by user role before
+                   passing to LLM. Redact any PII that slips through.
+Owner:             AI Engineering + Security team
+Target date:       Before production launch — this is a hard blocker.
+Validation:        Permission matrix test — 50 cross-role queries, 0 leakages.
+```
+ 
+**LLM09 — Overreliance**
+```
+Attack scenario:   An employee acts on a hallucinated policy detail from the
+                   assistant — e.g. incorrect leave entitlement — without
+                   checking the source document.
+Current control:   None — responses have no confidence indicators.
+Mitigation:        Attach source citations to every response. Display a
+                   grounding score. Add a disclaimer: "Always verify with
+                   the linked source document before acting."
+                   Flag low-confidence responses for human review.
+Owner:             Product + AI Engineering
+Target date:       Sprint 1
+Validation:        User testing with 10 employees — all responses include
+                   visible citations and disclaimer.
+```
+ 
+---
+ 
+### Pre-deployment Checklist
+ 
+- [x] System prompt does not contain secrets or credentials
+- [x] Retrieved context is structurally separated from instructions using XML delimiters
+- [x] All LLM outputs are validated before rendering — HTML escaped, PII redacted
+- [x] RBAC enforced at retrieval layer — chunks filtered by `access_level` metadata
+- [ ] Rate limiting in place — **in progress (Sprint 2)**
+- [x] No action tools — excessive agency not applicable
+- [x] Token consumption monitored via Azure Monitor
+- [ ] Red-teaming completed — **scheduled pre-launch**
+- [x] Audit logging enabled for all queries and retrieved chunks
+- [x] Employee disclaimer displayed on all responses
+---
+ 
+## Status
  
 | Section | Status |
 |---|---|
 | Threat modeling overview | Done |
 | OWASP LLM Top 10 breakdown | Done |
-| Threat modeling template | In progress |
+| Threat modeling template | Done |
+| Worked example — RAG system threat model | Done |
 | Prompt injection demos | Coming soon |
 | Jailbreak demos | Coming soon |
 | Data exfiltration demos | Coming soon |
@@ -815,5 +1066,6 @@ def perturb_output(response: str, perturbation_rate: float = 0.02) -> str:
 | Mitigation patterns | Coming soon |
  
 ---
+ 
 *Part of the [ai-engineering-portfolio](https://github.com/pulkitkushwaha/ai-engineering-portfolio) — built by [Pulkit Kushwaha](https://linkedin.com/in/pulkit-kushwaha)*
  
